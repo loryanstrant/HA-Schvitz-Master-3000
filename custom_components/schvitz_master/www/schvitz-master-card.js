@@ -10,7 +10,7 @@
 
 const CARD_TAG = "schvitz-master-card";
 const EDITOR_TAG = "schvitz-master-card-editor";
-const CARD_VERSION = "0.1.0";
+const CARD_VERSION = "0.2.0";
 
 const STATE_LABEL = {
   idle: "Idle",

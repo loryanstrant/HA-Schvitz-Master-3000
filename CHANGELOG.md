@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0
+
+### Added
+- The setup screen is now broken into a few short, explained steps (sauna → power →
+  session → music → tracking), so each option has context — including what "rounds" are.
+- Music can now start **when the sauna reaches a chosen temperature** instead of only at
+  round 1 (Music step → "Start the music").
+- The notification service is now a **dropdown** of your `notify.*` services (you can
+  still type a custom one).
+
+### Changed
+- The **door sensor** and the **heater / power switch** are now optional.
+
 ## 0.1.0
 Initial release.
 

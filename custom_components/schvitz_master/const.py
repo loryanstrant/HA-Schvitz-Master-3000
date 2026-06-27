@@ -1,4 +1,4 @@
-"""Constants for Schvitz Master 5000.
+"""Constants for Schvitz Master 3000.
 
 One config-flow custom integration that owns a sauna *session* end-to-end:
 warm-up → rounds (the times you sit) → breaks → end, with full orchestration of
@@ -26,6 +26,8 @@ CONF_POST_SWITCHES = "post_switches"
 CONF_MEDIA_PLAYER = "media_player"
 CONF_DEFAULT_PLAYLIST = "default_playlist"
 CONF_DEFAULT_VOLUME = "default_volume"
+CONF_MUSIC_START_MODE = "music_start_mode"
+CONF_MUSIC_START_TEMP = "music_start_temp"
 CONF_WATER_SENSOR = "water_sensor"
 CONF_WATER_SOURCE_MODE = "water_source_mode"
 CONF_HR_SENSOR = "hr_sensor"
@@ -41,8 +43,14 @@ DEFAULT_ROUND_MIN = 15
 DEFAULT_BREAK_MIN = 8
 DEFAULT_WARMUP_TARGET_TEMP = 80.0
 DEFAULT_VOLUME = 0.5
+DEFAULT_MUSIC_START_TEMP = 50.0
 # Max wall-clock to wait for warm-up before proceeding anyway (safety net).
 WARMUP_TIMEOUT_MIN = 45
+
+# --- When the chosen playlist starts playing ----------------------------------
+MUSIC_START_ROUND = "round"   # when round 1 begins (default)
+MUSIC_START_TEMP = "temp"     # when the sauna first reaches the music-start temp
+MUSIC_START_MODES = [MUSIC_START_ROUND, MUSIC_START_TEMP]
 
 # --- Water source modes (mirrors PHM) -----------------------------------------
 SOURCE_MODE_DELTA = "delta"

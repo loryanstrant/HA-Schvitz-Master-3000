@@ -187,6 +187,46 @@ async def test_resume_after_restart_advances_past_phase(hass):
     assert coord.state == C.STATE_BREAK
 
 
+async def test_music_starts_at_round_by_default(hass):
+    coord = await _new(hass)
+    coord.warmup_wait_enabled = False
+    plays = []
+    coord._play_media = lambda: plays.append(1) or _async_none()
+    await coord.async_start_session()  # round 1 begins → music plays once
+    assert coord._music_started is True
+    assert len(plays) == 1
+
+
+async def test_music_starts_at_temp_when_configured(hass):
+    hass.states.async_set("sensor.t", "20", {"unit_of_measurement": "°C"})
+    coord = await _new(hass, **{C.CONF_TEMP_SENSOR: "sensor.t",
+                                C.CONF_MUSIC_START_MODE: C.MUSIC_START_TEMP,
+                                C.CONF_MUSIC_START_TEMP: 50,
+                                C.CONF_WARMUP_TARGET_TEMP: 80})
+    plays = []
+    coord._play_media = lambda: plays.append(1) or _async_none()
+    await coord.async_start_session()  # warmup, cold → no music yet
+    assert coord.state == C.STATE_WARMUP
+    assert coord._music_started is False
+    # temp climbs past the music-start temp (but below warm-up target) → music starts
+    await coord._handle_temp(_temp_event(55))
+    assert coord._music_started is True
+    assert len(plays) == 1
+    assert coord.state == C.STATE_WARMUP  # still warming (target is 80)
+
+
+def _async_none():
+    async def _n():
+        return None
+    return _n()
+
+
+def _temp_event(value):
+    return SimpleNamespace(
+        data={"new_state": SimpleNamespace(state=str(value), attributes={"unit_of_measurement": "°C"})}
+    )
+
+
 def test_to_ml_units():
     assert _to_ml(1, "L") == 1000.0
     assert round(_to_ml(1, "fl_oz"), 2) == 29.57

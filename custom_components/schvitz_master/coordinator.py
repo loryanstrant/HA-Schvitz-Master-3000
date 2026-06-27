@@ -97,6 +97,10 @@ class SchvitzCoordinator:
         self.selected_playlist: str | None = self.default_playlist
         self.selected_volume: float = self.default_volume
         self.selected_profile: str = C.PROFILE_NONE
+        self.music_start_mode: str = cfg.get(C.CONF_MUSIC_START_MODE, C.MUSIC_START_ROUND)
+        self.music_start_temp: float = float(
+            cfg.get(C.CONF_MUSIC_START_TEMP, C.DEFAULT_MUSIC_START_TEMP)
+        )
 
         # --- Live session state ----------------------------------------------
         self.state: str = C.STATE_IDLE
@@ -117,6 +121,9 @@ class SchvitzCoordinator:
         # Backing value for the "last session water" charted sensor.
         self.last_session_water_ml: float | None = None
         self._post_off_at: str | None = None
+        # Whether this session's media has been started yet (so the temp trigger
+        # and the round-1 fallback don't double up).
+        self._music_started: bool = False
 
         # label -> media_id, best-effort from Music Assistant for the playlist select.
         self.playlist_map: dict[str, str] = {}
@@ -212,6 +219,7 @@ class SchvitzCoordinator:
         self.history = list(s.get("history", []))
         self.last_session_water_ml = s.get("last_session_water_ml")
         self._post_off_at = s.get("post_off_at")
+        self._music_started = bool(s.get("music_started", False))
 
     async def _resume_after_restart(self) -> None:
         """Advance the state machine to account for time spent while HA was down."""
@@ -344,6 +352,16 @@ class SchvitzCoordinator:
         except (TypeError, ValueError):
             return
         self.peak_temp = value if self.peak_temp is None else max(self.peak_temp, value)
+        # Temp-triggered music: start the playlist the first time the sauna is
+        # hot enough (e.g. while still warming up), rather than at round 1.
+        if (
+            self.music_start_mode == C.MUSIC_START_TEMP
+            and not self._music_started
+            and self.is_active
+            and value >= self.music_start_temp
+        ):
+            await self._play_media()
+            self._music_started = True
         if self.state == C.STATE_WARMUP:
             await self._check_warmup()
         else:
@@ -460,6 +478,7 @@ class SchvitzCoordinator:
         self.hr_count = 0
         self.hr_max = None
         self.peak_temp = self._read_float(self.temp_sensor)
+        self._music_started = False
 
     async def async_start_session(
         self,
@@ -511,7 +530,12 @@ class SchvitzCoordinator:
         self.current_round += 1
         self.state = C.STATE_IN_ROUND
         self._schedule_phase_end(self.round_duration_min * 60)
-        await self._play_media()
+        # Start media now unless the temp trigger already did (or will): in
+        # "round" mode this always plays at round 1; in "temp" mode it's the
+        # fallback if the sauna never reached the music-start temp.
+        if not self._music_started:
+            await self._play_media()
+            self._music_started = True
         self._fire(C.EVENT_ROUND_STARTED)
         self._notify(
             f"{self.name} — round {self.current_round}/{self.round_count}",
@@ -689,6 +713,7 @@ class SchvitzCoordinator:
                 "history": self.history,
                 "last_session_water_ml": self.last_session_water_ml,
                 "post_off_at": self._post_off_at,
+                "music_started": self._music_started,
             }
         )
 
