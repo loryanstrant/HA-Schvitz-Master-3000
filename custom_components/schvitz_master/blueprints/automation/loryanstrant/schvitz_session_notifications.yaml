@@ -1,0 +1,70 @@
+blueprint:
+  name: Schvitz Master — session notifications
+  description: >-
+    Send a mobile notification on each Schvitz Master 3000 session transition
+    (round start, break, session complete). Session-flow only — no hydration nags.
+  domain: automation
+  input:
+    notify_service:
+      name: Notify service
+      description: e.g. notify.mobile_app_your_phone
+      selector:
+        text:
+    notify_round_start:
+      name: Notify on round start
+      default: true
+      selector:
+        boolean:
+    notify_break:
+      name: Notify on break
+      default: true
+      selector:
+        boolean:
+    notify_end:
+      name: Notify on session complete
+      default: true
+      selector:
+        boolean:
+
+mode: queued
+triggers:
+  - trigger: event
+    event_type: schvitz_master_round_started
+    id: round
+  - trigger: event
+    event_type: schvitz_master_break_started
+    id: break
+  - trigger: event
+    event_type: schvitz_master_session_ended
+    id: end
+actions:
+  - choose:
+      - conditions:
+          - "{{ trigger.id == 'round' and notify_round_start }}"
+        sequence:
+          - action: !input notify_service
+            data:
+              title: "{{ trigger.event.data.name }} — round {{ trigger.event.data.round }}/{{ trigger.event.data.total_rounds }}"
+              message: "Time to sit. Enjoy the schvitz."
+      - conditions:
+          - "{{ trigger.id == 'break' and notify_break }}"
+        sequence:
+          - action: !input notify_service
+            data:
+              title: "{{ trigger.event.data.name }} — break"
+              message: "Round {{ trigger.event.data.round }} of {{ trigger.event.data.total_rounds }} done."
+      - conditions:
+          - "{{ trigger.id == 'end' and notify_end }}"
+        sequence:
+          - action: !input notify_service
+            data:
+              title: "{{ trigger.event.data.name }} — session complete"
+              message: >-
+                {{ trigger.event.data.summary.rounds }} round(s){% if
+                trigger.event.data.summary.water_ml %}, {{
+                trigger.event.data.summary.water_ml | round }} mL water{% endif %}.
+    default: []
+variables:
+  notify_round_start: !input notify_round_start
+  notify_break: !input notify_break
+  notify_end: !input notify_end

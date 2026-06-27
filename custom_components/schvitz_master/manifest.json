@@ -1,0 +1,13 @@
+{
+  "domain": "schvitz_master",
+  "name": "Schvitz Master 3000",
+  "codeowners": ["@loryanstrant"],
+  "config_flow": true,
+  "dependencies": ["http", "frontend", "lovelace"],
+  "documentation": "https://github.com/loryanstrant/HA-Schvitz-Master-3000",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/loryanstrant/HA-Schvitz-Master-3000/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

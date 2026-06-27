@@ -1,0 +1,58 @@
+blueprint:
+  name: Schvitz Master — voice control
+  description: >-
+    Control a Schvitz Master 3000 session by voice via Assist sentence triggers.
+    "start/stop a schvitz", "next round", "extend the schvitz".
+  domain: automation
+  input:
+    target:
+      name: Sauna target
+      description: Sauna slug or config entry id (leave blank if you only have one).
+      default: ""
+      selector:
+        text:
+
+mode: queued
+triggers:
+  - trigger: conversation
+    command:
+      - "[start|begin] [a|the|my] schvitz"
+      - "[start|begin] [a|the] sauna session"
+    id: start
+  - trigger: conversation
+    command:
+      - "[stop|end|finish] [the|my] schvitz"
+      - "[stop|end] [the] sauna session"
+    id: stop
+  - trigger: conversation
+    command:
+      - "next [sauna] round"
+      - "next schvitz round"
+    id: next
+  - trigger: conversation
+    command:
+      - "extend [the] schvitz"
+      - "extend [the] sauna [round]"
+    id: extend
+actions:
+  - choose:
+      - conditions: "{{ trigger.id == 'start' }}"
+        sequence:
+          - action: schvitz_master.start_session
+            data: { target: !input target }
+          - set_conversation_response: "Starting your schvitz."
+      - conditions: "{{ trigger.id == 'stop' }}"
+        sequence:
+          - action: schvitz_master.end_session
+            data: { target: !input target }
+          - set_conversation_response: "Ending the session."
+      - conditions: "{{ trigger.id == 'next' }}"
+        sequence:
+          - action: schvitz_master.next_round
+            data: { target: !input target }
+          - set_conversation_response: "Next round."
+      - conditions: "{{ trigger.id == 'extend' }}"
+        sequence:
+          - action: schvitz_master.extend_round
+            data: { target: !input target, minutes: 5 }
+          - set_conversation_response: "Added five minutes."

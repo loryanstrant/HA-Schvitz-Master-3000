@@ -1,0 +1,83 @@
+{
+  "title": "Schvitz Master 3000",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a sauna",
+        "description": "Wire up your sauna's sensors and switches. Per-session settings (rounds, durations, playlist) are adjustable later from the controls.",
+        "data": {
+          "name": "Name",
+          "temp_sensor": "Temperature sensor",
+          "seat_temp_sensor": "Seat temperature sensor (optional)",
+          "door_sensor": "Door sensor",
+          "vent_sensor": "Vent sensor (optional)",
+          "heater_switch": "Heater / power switch",
+          "plug_switch": "Plug switch (optional)",
+          "pre_switches": "Switches to turn on at start",
+          "post_switches": "Switches to turn on at end",
+          "media_player": "Media player",
+          "default_playlist": "Default playlist (Music Assistant media id)",
+          "default_volume": "Default volume",
+          "water_sensor": "Water intake sensor (optional)",
+          "water_source_mode": "Water source mode",
+          "hr_sensor": "Heart-rate sensor (optional)",
+          "notify_service": "Notify service (e.g. notify.mobile_app_x)",
+          "default_rounds": "Default rounds",
+          "default_round_min": "Default round length",
+          "default_break_min": "Default break length",
+          "warmup_target_temp": "Warm-up target temperature"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "A sauna with that name already exists."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit sauna",
+        "data": {
+          "name": "Name",
+          "temp_sensor": "Temperature sensor",
+          "seat_temp_sensor": "Seat temperature sensor (optional)",
+          "door_sensor": "Door sensor",
+          "vent_sensor": "Vent sensor (optional)",
+          "heater_switch": "Heater / power switch",
+          "plug_switch": "Plug switch (optional)",
+          "pre_switches": "Switches to turn on at start",
+          "post_switches": "Switches to turn on at end",
+          "media_player": "Media player",
+          "default_playlist": "Default playlist (Music Assistant media id)",
+          "default_volume": "Default volume",
+          "water_sensor": "Water intake sensor (optional)",
+          "water_source_mode": "Water source mode",
+          "hr_sensor": "Heart-rate sensor (optional)",
+          "notify_service": "Notify service (e.g. notify.mobile_app_x)",
+          "default_rounds": "Default rounds",
+          "default_round_min": "Default round length",
+          "default_break_min": "Default break length",
+          "warmup_target_temp": "Warm-up target temperature"
+        }
+      }
+    }
+  },
+  "selector": {
+    "source_mode": {
+      "options": {
+        "absolute": "Absolute (sensor state = session total)",
+        "delta": "Delta (sum positive increases)"
+      }
+    }
+  },
+  "services": {
+    "start_session": { "name": "Start session", "description": "Start a sauna session." },
+    "end_session": { "name": "End session", "description": "End the current session." },
+    "next_round": { "name": "Next round", "description": "Advance to the next round or break." },
+    "extend_round": { "name": "Extend round", "description": "Add minutes to the current phase." },
+    "set_rounds": { "name": "Set rounds", "description": "Change the number of rounds." },
+    "skip_warmup": { "name": "Skip warm-up", "description": "Begin round 1 without waiting." },
+    "log_water": { "name": "Log water", "description": "Manually log water for the session." },
+    "apply_profile": { "name": "Apply profile", "description": "Apply a built-in session profile." }
+  }
+}
