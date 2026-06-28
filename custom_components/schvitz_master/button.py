@@ -27,8 +27,8 @@ async def async_setup_entry(
                     lambda c: c.async_next_round()),
             _Button(coord, "extend", "Extend +5 min", "mdi:plus",
                     lambda c: c.async_extend(5)),
-            _Button(coord, "skip_warmup", "Skip warm-up", "mdi:fast-forward",
-                    lambda c: c.async_skip_warmup()),
+            _Button(coord, "start_round", "Start round", "mdi:account-arrow-right",
+                    lambda c: c.async_start_round()),
         ]
     )
 

@@ -3,58 +3,66 @@
   "config": {
     "step": {
       "sauna": {
-        "title": "Your sauna",
-        "description": "Schvitz Master runs a whole sauna session for you: it warms up, runs each round and break, plays your music, and tidies up at the end.\n\nFirst, the physical sauna. Only a temperature sensor is required — everything else is optional and can be added later.",
+        "title": "Your sauna (1 of 5)",
+        "description": "Schvitz Master runs your whole sauna session: it tracks heating, runs each round and break, plays your music, and tidies up at the end.\n\nFirst, the physical sauna. Only a temperature sensor is required.",
         "data": {
           "name": "Name",
           "temp_sensor": "Temperature sensor",
           "seat_temp_sensor": "Seat temperature sensor",
           "door_sensor": "Door sensor",
-          "vent_sensor": "Vent sensor"
+          "vent_sensor": "Vent sensor",
+          "power_sensor": "Plug power sensor",
+          "operation_sensor": "Operation sensor"
         },
         "data_description": {
-          "name": "What to call this sauna (used for its device and entity names).",
-          "temp_sensor": "The main air-temperature sensor. Used for the warm-up wait and the per-session peak-temperature reading.",
-          "seat_temp_sensor": "Optional second temperature sensor (e.g. at the bench).",
-          "door_sensor": "Optional. Monitored during a session.",
-          "vent_sensor": "Optional damper/vent contact, monitored during a session."
+          "temp_sensor": "Main air temperature. Used to tell you when the sauna's ready and to record the session's peak temp.",
+          "door_sensor": "Optional. Monitored during a session (and used for the door-open safety cut-off).",
+          "power_sensor": "Optional. The sauna plug's power draw — this is how the integration knows the heater is actually on.",
+          "operation_sensor": "Optional. A text sensor that already reports Off / On / Heating (e.g. from your plug). Used in preference to a raw power threshold."
         }
       },
       "power": {
-        "title": "Power & switches",
-        "description": "What to switch on when a session starts and off when it ends. All optional — leave blank if you'd rather control power yourself.\n\nNote: Home Assistant can only turn the sauna on or off here; it can't set the thermostat if that's a separate hardwired panel.",
+        "title": "Power & switches (2 of 5)",
+        "description": "How the sauna is switched on/off and what happens to lights at the start and end. All optional.\n\nNote: HA can switch the sauna on/off, but not set the thermostat if that's a separate hardwired panel.",
         "data": {
+          "trigger_on_heater": "Start a session when the sauna is switched on",
           "heater_switch": "Heater / power switch",
           "plug_switch": "Plug switch",
-          "pre_switches": "Turn on at start",
-          "post_switches": "Turn on at end"
+          "start_scene": "Scene to set at start",
+          "pre_switches": "Also turn on at start",
+          "end_off_switches": "Turn off at end"
         },
         "data_description": {
-          "heater_switch": "Turned on at session start, off at the end. Often a switch or an input_boolean.",
-          "plug_switch": "An extra power outlet to switch with the heater.",
-          "pre_switches": "Lights or switches to turn on when the session starts (e.g. sauna lighting).",
-          "post_switches": "Switches to turn on when the session ends (e.g. a cool-down fan or outside light)."
+          "trigger_on_heater": "When on, enabling the heater switch (e.g. schvitz mode) automatically begins a session — matching how you start the sauna today.",
+          "heater_switch": "The switch/boolean you flip to power the sauna. The integration watches it as the session trigger and turns it off at the end.",
+          "start_scene": "A scene you compose in HA (e.g. set the sauna lamp to a colour). Activated when a session starts — far more flexible than just switching lights on.",
+          "pre_switches": "Extra switches/lights to turn on at start that aren't in the scene.",
+          "end_off_switches": "Lights/switches to turn off when the session ends."
         }
       },
       "session": {
-        "title": "Session defaults",
-        "description": "Defaults for a session. A session is made up of rounds — each round is one time you sit in the sauna, with a cool-down break in between. Two rounds of ~15 minutes is typical.\n\nYou can change any of these per session later from the controls, without coming back here.",
+        "title": "Session defaults (3 of 5)",
+        "description": "A session is made of rounds — each round is one time you sit, with a cool-down break in between. Two rounds is typical. You can change all of these per session later, without coming back here.",
         "data": {
           "default_rounds": "Rounds per session",
           "default_round_min": "Round length",
-          "default_break_min": "Break length",
-          "warmup_target_temp": "Warm-up target temperature"
+          "default_break_min": "Break length (optional)",
+          "warmup_target_temp": "Ready temperature",
+          "idle_heating_timeout": "Auto-off if left heating",
+          "door_open_timeout": "End if door left open"
         },
         "data_description": {
-          "default_rounds": "How many times you sit in the sauna during one session (the rounds). Usually 2.",
+          "default_rounds": "How many times you sit in the sauna per session (the rounds). Usually 2.",
           "default_round_min": "How long each round in the sauna lasts.",
-          "default_break_min": "The cool-down break between rounds.",
-          "warmup_target_temp": "If the warm-up wait is on, the session holds at 'heating' until the sauna reaches this temperature, then starts round 1."
+          "default_break_min": "Leave at 0 for open-ended breaks — after a round the sauna waits until you tap Next (back from your cold shower). Set a number if you'd prefer a timed break.",
+          "warmup_target_temp": "When the sauna reaches this temperature you get a 'ready' notification — then you tap Start to begin round 1.",
+          "idle_heating_timeout": "Safety: if the sauna's left heating with no round started for this long, auto-end and switch it off. 0 disables.",
+          "door_open_timeout": "Safety: if the door stays open this long during a session, end and switch off. 0 disables."
         }
       },
       "media": {
-        "title": "Music",
-        "description": "Optionally play a playlist through a speaker during the session. Works great with Music Assistant.",
+        "title": "Music (4 of 5)",
+        "description": "Optionally play a Music Assistant playlist through a speaker during the session.",
         "data": {
           "media_player": "Media player",
           "default_playlist": "Default playlist",
@@ -64,15 +72,14 @@
         },
         "data_description": {
           "media_player": "The speaker to play on (e.g. a Music Assistant player).",
-          "default_playlist": "A Music Assistant media id / URI, e.g. library://playlist/84. You can also pick a playlist per session.",
-          "default_volume": "Playback volume (0–1).",
-          "music_start_mode": "Whether the music starts as soon as round 1 begins, or earlier — once the sauna warms up to a chosen temperature.",
-          "music_start_temp": "Only used when 'when the sauna reaches a temperature' is selected: the music starts the moment the sauna first hits this temperature."
+          "default_playlist": "Pick from your Music Assistant playlists — no need to find an ID. You can also choose a playlist per session.",
+          "music_start_mode": "Whether the music starts when round 1 begins, or earlier — once the sauna warms up to a chosen temperature.",
+          "music_start_temp": "Only used for 'when the sauna reaches a temperature': the music starts the moment the sauna first hits this temperature."
         }
       },
       "tracking": {
-        "title": "Tracking & notifications",
-        "description": "Optionally track what you drink and your heart rate during a session, and get notified at each step. Everything here is optional and any sensor that's missing on a given day is simply skipped.",
+        "title": "Tracking & notifications (5 of 5)",
+        "description": "Optionally track water and heart rate, and choose where notifications go. All optional — any sensor missing on a given day is simply skipped.",
         "data": {
           "water_sensor": "Water intake sensor",
           "water_source_mode": "Water source mode",
@@ -80,10 +87,10 @@
           "notify_service": "Notification service"
         },
         "data_description": {
-          "water_sensor": "Optional. e.g. a smart water bottle. Used to total the water you drink during a session and chart it over time.",
-          "water_source_mode": "How to read the water sensor: 'delta' sums increases (a running total bottle), 'absolute' treats the value as the session total.",
-          "hr_sensor": "Optional heart-rate sensor; the session records your average and max.",
-          "notify_service": "Where to send session notifications (round start, break, complete). Pick a notify service or type one."
+          "water_sensor": "e.g. a smart water bottle. Totals the water you drink during a session and charts it over time.",
+          "water_source_mode": "'delta' sums increases (a running-total bottle); 'absolute' treats the value as the session total.",
+          "hr_sensor": "Records your average and max heart rate for the session.",
+          "notify_service": "Where session notifications go (ready, round start, break, complete). Pick a notify service or type one."
         }
       }
     },
@@ -94,57 +101,48 @@
   "options": {
     "step": {
       "sauna": {
-        "title": "Your sauna",
+        "title": "Your sauna (1 of 5)",
         "description": "The physical sauna. Only a temperature sensor is required.",
         "data": {
-          "name": "Name",
-          "temp_sensor": "Temperature sensor",
-          "seat_temp_sensor": "Seat temperature sensor",
-          "door_sensor": "Door sensor",
-          "vent_sensor": "Vent sensor"
+          "name": "Name", "temp_sensor": "Temperature sensor", "seat_temp_sensor": "Seat temperature sensor",
+          "door_sensor": "Door sensor", "vent_sensor": "Vent sensor", "power_sensor": "Plug power sensor",
+          "operation_sensor": "Operation sensor"
         }
       },
       "power": {
-        "title": "Power & switches",
-        "description": "Switches to flick at start and end (all optional).",
+        "title": "Power & switches (2 of 5)",
+        "description": "How the sauna is switched, and lights at start/end (all optional).",
         "data": {
-          "heater_switch": "Heater / power switch",
-          "plug_switch": "Plug switch",
-          "pre_switches": "Turn on at start",
-          "post_switches": "Turn on at end"
+          "trigger_on_heater": "Start a session when the sauna is switched on", "heater_switch": "Heater / power switch",
+          "plug_switch": "Plug switch", "start_scene": "Scene to set at start", "pre_switches": "Also turn on at start",
+          "end_off_switches": "Turn off at end"
         }
       },
       "session": {
-        "title": "Session defaults",
+        "title": "Session defaults (3 of 5)",
         "description": "A session is made of rounds — each round is one time you sit, with a break in between.",
         "data": {
-          "default_rounds": "Rounds per session",
-          "default_round_min": "Round length",
-          "default_break_min": "Break length",
-          "warmup_target_temp": "Warm-up target temperature"
+          "default_rounds": "Rounds per session", "default_round_min": "Round length", "default_break_min": "Break length (optional)",
+          "warmup_target_temp": "Ready temperature", "idle_heating_timeout": "Auto-off if left heating", "door_open_timeout": "End if door left open"
         },
         "data_description": {
-          "default_rounds": "How many times you sit in the sauna per session. Usually 2."
+          "default_rounds": "How many times you sit per session. Usually 2.",
+          "default_break_min": "0 = open-ended (wait for Next); set a number for a timed break."
         }
       },
       "media": {
-        "title": "Music",
-        "description": "Playlist, speaker, volume, and when the music starts.",
+        "title": "Music (4 of 5)",
+        "description": "Playlist (from Music Assistant), speaker, volume, and when the music starts.",
         "data": {
-          "media_player": "Media player",
-          "default_playlist": "Default playlist",
-          "default_volume": "Volume",
-          "music_start_mode": "Start the music",
-          "music_start_temp": "Music-start temperature"
+          "media_player": "Media player", "default_playlist": "Default playlist", "default_volume": "Volume",
+          "music_start_mode": "Start the music", "music_start_temp": "Music-start temperature"
         }
       },
       "tracking": {
-        "title": "Tracking & notifications",
+        "title": "Tracking & notifications (5 of 5)",
         "description": "Optional water/heart-rate tracking and notifications.",
         "data": {
-          "water_sensor": "Water intake sensor",
-          "water_source_mode": "Water source mode",
-          "hr_sensor": "Heart-rate sensor",
+          "water_sensor": "Water intake sensor", "water_source_mode": "Water source mode", "hr_sensor": "Heart-rate sensor",
           "notify_service": "Notification service"
         }
       }
@@ -165,12 +163,12 @@
     }
   },
   "services": {
-    "start_session": { "name": "Start session", "description": "Start a sauna session." },
-    "end_session": { "name": "End session", "description": "End the current session." },
+    "start_session": { "name": "Start session", "description": "Turn the sauna on and begin the heating phase." },
+    "end_session": { "name": "End session", "description": "End the current session and switch the sauna off." },
     "next_round": { "name": "Next round", "description": "Advance to the next round or break." },
-    "extend_round": { "name": "Extend round", "description": "Add minutes to the current phase." },
+    "extend_round": { "name": "Extend round", "description": "Add minutes to the current timed phase." },
     "set_rounds": { "name": "Set rounds", "description": "Change the number of rounds." },
-    "skip_warmup": { "name": "Skip warm-up", "description": "Begin round 1 without waiting." },
+    "start_round": { "name": "Start round", "description": "Begin round 1 from heating (you're getting in), or the next round from a break." },
     "log_water": { "name": "Log water", "description": "Manually log water for the session." },
     "apply_profile": { "name": "Apply profile", "description": "Apply a built-in session profile." }
   }

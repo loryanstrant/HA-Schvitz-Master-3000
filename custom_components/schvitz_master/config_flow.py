@@ -1,14 +1,12 @@
 """Config + options flow for Schvitz Master 3000.
 
-Grouped into a few short screens so the many options are explained in context:
-  1. sauna     — the physical sauna (temperature + door/vent monitoring)
-  2. power      — heater / power / lighting switches to flick at start & end
-  3. session    — default rounds & durations and the warm-up behaviour
-  4. media      — speaker, playlist, volume, and when the music starts
+Five grouped, explained screens (with Next buttons + an "N of 5" counter in each
+title via strings.json):
+  1. sauna     — the physical sauna (temperature, door/vent, plug power)
+  2. power      — heater trigger, switches, and the start scene
+  3. session    — rounds, durations (break optional), ready temp, safety timeouts
+  4. media      — speaker, playlist (picked from Music Assistant), volume, music start
   5. tracking   — optional water/heart-rate sensors and notifications
-
-Only durable wiring lives here; per-session knobs (round count, durations,
-media/playlist) are runtime entities so they can be changed each session.
 """
 from __future__ import annotations
 
@@ -32,11 +30,6 @@ def _num(min_v, max_v, step, unit=None):
 
 
 def _add_entity(schema: dict, key: str, defaults: dict, *, required: bool = False, **cfg) -> None:
-    """Add an EntitySelector field; only attach a default when one exists.
-
-    An empty-string default fails EntitySelector validation, so for optional
-    fields with no configured value we omit the default entirely.
-    """
     entity = selector.EntitySelector(selector.EntitySelectorConfig(**cfg))
     existing = defaults.get(key)
     if required:
@@ -48,6 +41,34 @@ def _add_entity(schema: dict, key: str, defaults: dict, *, required: bool = Fals
     schema[marker] = entity
 
 
+async def _ma_playlists(hass: HomeAssistant) -> list[tuple[str, str]]:
+    """(name, uri) of Music Assistant playlists, via its get_library service."""
+    try:
+        entries = hass.config_entries.async_entries("music_assistant")
+        if not entries or not hass.services.has_service("music_assistant", "get_library"):
+            return []
+        resp = await hass.services.async_call(
+            "music_assistant", "get_library",
+            {"config_entry_id": entries[0].entry_id, "media_type": "playlist", "limit": 500},
+            blocking=True, return_response=True,
+        )
+        items = None
+        if isinstance(resp, dict):
+            items = resp.get("items")
+            if items is None:
+                for v in resp.values():
+                    if isinstance(v, list):
+                        items = v
+                        break
+        return [
+            (it["name"], it["uri"])
+            for it in (items or [])
+            if isinstance(it, dict) and it.get("name") and it.get("uri")
+        ]
+    except Exception:  # pragma: no cover - MA shape is version-fragile
+        return []
+
+
 # --------------------------------------------------------- per-step schemas
 def _schema_sauna(hass: HomeAssistant, d: dict) -> vol.Schema:
     schema: dict[Any, Any] = {
@@ -57,15 +78,20 @@ def _schema_sauna(hass: HomeAssistant, d: dict) -> vol.Schema:
     _add_entity(schema, C.CONF_SEAT_TEMP_SENSOR, d, domain="sensor", device_class="temperature")
     _add_entity(schema, C.CONF_DOOR_SENSOR, d, domain="binary_sensor", device_class="door")
     _add_entity(schema, C.CONF_VENT_SENSOR, d, domain="binary_sensor")
+    _add_entity(schema, C.CONF_POWER_SENSOR, d, domain="sensor", device_class="power")
+    _add_entity(schema, C.CONF_OPERATION_SENSOR, d, domain="sensor")
     return vol.Schema(schema)
 
 
 def _schema_power(hass: HomeAssistant, d: dict) -> vol.Schema:
-    schema: dict[Any, Any] = {}
+    schema: dict[Any, Any] = {
+        vol.Optional(C.CONF_TRIGGER_ON_HEATER, default=d.get(C.CONF_TRIGGER_ON_HEATER, True)): bool,
+    }
     _add_entity(schema, C.CONF_HEATER_SWITCH, d, domain=["switch", "input_boolean"])
     _add_entity(schema, C.CONF_PLUG_SWITCH, d, domain="switch")
+    _add_entity(schema, C.CONF_START_SCENE, d, domain="scene")
     _add_entity(schema, C.CONF_PRE_SWITCHES, d, domain=["switch", "light", "input_boolean"], multiple=True)
-    _add_entity(schema, C.CONF_POST_SWITCHES, d, domain=["switch", "light", "input_boolean"], multiple=True)
+    _add_entity(schema, C.CONF_END_OFF_SWITCHES, d, domain=["switch", "light", "input_boolean"], multiple=True)
     return vol.Schema(schema)
 
 
@@ -74,16 +100,28 @@ def _schema_session(hass: HomeAssistant, d: dict) -> vol.Schema:
         {
             vol.Required(C.CONF_DEFAULT_ROUNDS, default=d.get(C.CONF_DEFAULT_ROUNDS, C.DEFAULT_ROUNDS)): _num(1, 6, 1),
             vol.Required(C.CONF_DEFAULT_ROUND_MIN, default=d.get(C.CONF_DEFAULT_ROUND_MIN, C.DEFAULT_ROUND_MIN)): _num(3, 30, 1, "min"),
-            vol.Required(C.CONF_DEFAULT_BREAK_MIN, default=d.get(C.CONF_DEFAULT_BREAK_MIN, C.DEFAULT_BREAK_MIN)): _num(2, 30, 1, "min"),
+            vol.Optional(C.CONF_DEFAULT_BREAK_MIN, default=d.get(C.CONF_DEFAULT_BREAK_MIN, 0)): _num(0, 30, 1, "min"),
             vol.Optional(C.CONF_WARMUP_TARGET_TEMP, default=d.get(C.CONF_WARMUP_TARGET_TEMP, C.DEFAULT_WARMUP_TARGET_TEMP)): _num(40, 110, 1, "°C"),
+            vol.Optional(C.CONF_IDLE_HEATING_TIMEOUT, default=d.get(C.CONF_IDLE_HEATING_TIMEOUT, C.DEFAULT_IDLE_HEATING_TIMEOUT)): _num(0, 180, 5, "min"),
+            vol.Optional(C.CONF_DOOR_OPEN_TIMEOUT, default=d.get(C.CONF_DOOR_OPEN_TIMEOUT, C.DEFAULT_DOOR_OPEN_TIMEOUT)): _num(0, 30, 1, "min"),
         }
     )
 
 
-def _schema_media(hass: HomeAssistant, d: dict) -> vol.Schema:
+def _schema_media(hass: HomeAssistant, d: dict, playlists: list[tuple[str, str]]) -> vol.Schema:
     schema: dict[Any, Any] = {}
     _add_entity(schema, C.CONF_MEDIA_PLAYER, d, domain="media_player")
-    schema[vol.Optional(C.CONF_DEFAULT_PLAYLIST, default=d.get(C.CONF_DEFAULT_PLAYLIST, ""))] = str
+
+    # Playlist: a dropdown of Music Assistant playlists (value = uri, label = name);
+    # custom_value lets you still paste a media id if MA isn't reachable.
+    opts = [selector.SelectOptionDict(value=uri, label=name) for name, uri in playlists]
+    pl_cfg = selector.SelectSelectorConfig(
+        options=opts, custom_value=True, sort=True, mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+    existing_pl = d.get(C.CONF_DEFAULT_PLAYLIST)
+    pl_marker = vol.Optional(C.CONF_DEFAULT_PLAYLIST, default=existing_pl) if existing_pl else vol.Optional(C.CONF_DEFAULT_PLAYLIST)
+    schema[pl_marker] = selector.SelectSelector(pl_cfg)
+
     schema[vol.Optional(C.CONF_DEFAULT_VOLUME, default=d.get(C.CONF_DEFAULT_VOLUME, C.DEFAULT_VOLUME))] = _num(0, 1, 0.05)
     schema[
         vol.Required(C.CONF_MUSIC_START_MODE, default=d.get(C.CONF_MUSIC_START_MODE, C.MUSIC_START_ROUND))
@@ -95,11 +133,6 @@ def _schema_media(hass: HomeAssistant, d: dict) -> vol.Schema:
     )
     schema[vol.Optional(C.CONF_MUSIC_START_TEMP, default=d.get(C.CONF_MUSIC_START_TEMP, C.DEFAULT_MUSIC_START_TEMP))] = _num(30, 110, 1, "°C")
     return vol.Schema(schema)
-
-
-def _notify_options(hass: HomeAssistant) -> list[str]:
-    services = hass.services.async_services().get("notify", {}) if hass else {}
-    return sorted(f"notify.{name}" for name in services)
 
 
 def _schema_tracking(hass: HomeAssistant, d: dict) -> vol.Schema:
@@ -115,24 +148,17 @@ def _schema_tracking(hass: HomeAssistant, d: dict) -> vol.Schema:
     )
     _add_entity(schema, C.CONF_HR_SENSOR, d, domain="sensor")
 
-    # A dropdown of the actual notify.* services (with custom entry allowed),
-    # instead of a free-text field.
+    notify_services = sorted(f"notify.{n}" for n in hass.services.async_services().get("notify", {}))
     notify_cfg = selector.SelectSelectorConfig(
-        options=_notify_options(hass), custom_value=True,
-        mode=selector.SelectSelectorMode.DROPDOWN,
+        options=notify_services, custom_value=True, mode=selector.SelectSelectorMode.DROPDOWN,
     )
     existing_notify = d.get(C.CONF_NOTIFY_SERVICE)
-    marker = (
-        vol.Optional(C.CONF_NOTIFY_SERVICE, default=existing_notify)
-        if existing_notify
-        else vol.Optional(C.CONF_NOTIFY_SERVICE)
-    )
-    schema[marker] = selector.SelectSelector(notify_cfg)
+    n_marker = vol.Optional(C.CONF_NOTIFY_SERVICE, default=existing_notify) if existing_notify else vol.Optional(C.CONF_NOTIFY_SERVICE)
+    schema[n_marker] = selector.SelectSelector(notify_cfg)
     return vol.Schema(schema)
 
 
 def _clean(data: dict[str, Any]) -> dict[str, Any]:
-    """Drop empty optional strings so they don't persist as ""."""
     for key in (C.CONF_DEFAULT_PLAYLIST, C.CONF_NOTIFY_SERVICE):
         if not data.get(key):
             data.pop(key, None)
@@ -141,11 +167,7 @@ def _clean(data: dict[str, Any]) -> dict[str, Any]:
 
 # ------------------------------------------------------------ shared steps
 class _StepsMixin:
-    """The 5-screen sequence, shared by the config and options flows.
-
-    Subclasses provide ``self.hass``, ``self._data`` (the accumulator) and a
-    ``_finish()`` that creates the entry.
-    """
+    """The 5-screen sequence, shared by the config and options flows."""
 
     _data: dict[str, Any]
 
@@ -153,31 +175,34 @@ class _StepsMixin:
         if user_input is not None:
             self._data.update(user_input)
             return await self.async_step_power()
-        return self.async_show_form(step_id="sauna", data_schema=_schema_sauna(self.hass, self._data))
+        return self.async_show_form(step_id="sauna", data_schema=_schema_sauna(self.hass, self._data), last_step=False)
 
     async def async_step_power(self, user_input=None):
         if user_input is not None:
             self._data.update(user_input)
             return await self.async_step_session()
-        return self.async_show_form(step_id="power", data_schema=_schema_power(self.hass, self._data))
+        return self.async_show_form(step_id="power", data_schema=_schema_power(self.hass, self._data), last_step=False)
 
     async def async_step_session(self, user_input=None):
         if user_input is not None:
             self._data.update(user_input)
             return await self.async_step_media()
-        return self.async_show_form(step_id="session", data_schema=_schema_session(self.hass, self._data))
+        return self.async_show_form(step_id="session", data_schema=_schema_session(self.hass, self._data), last_step=False)
 
     async def async_step_media(self, user_input=None):
         if user_input is not None:
             self._data.update(user_input)
             return await self.async_step_tracking()
-        return self.async_show_form(step_id="media", data_schema=_schema_media(self.hass, self._data))
+        playlists = await _ma_playlists(self.hass)
+        return self.async_show_form(
+            step_id="media", data_schema=_schema_media(self.hass, self._data, playlists), last_step=False
+        )
 
     async def async_step_tracking(self, user_input=None):
         if user_input is not None:
             self._data.update(user_input)
             return await self._finish()
-        return self.async_show_form(step_id="tracking", data_schema=_schema_tracking(self.hass, self._data))
+        return self.async_show_form(step_id="tracking", data_schema=_schema_tracking(self.hass, self._data), last_step=True)
 
     async def _finish(self):  # pragma: no cover - overridden
         raise NotImplementedError
@@ -206,11 +231,9 @@ class SchvitzConfigFlow(_StepsMixin, config_entries.ConfigFlow, domain=C.DOMAIN)
 
 
 class SchvitzOptionsFlow(_StepsMixin, config_entries.OptionsFlow):
-    """Edit an existing sauna's wiring through the same grouped screens."""
+    """Edit an existing sauna through the same grouped screens."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        # HA 2024.12+ made OptionsFlow.config_entry a read-only property; assigning
-        # it raises AttributeError surfaced as a 500. Store under a private name.
         self._entry = config_entry
         self._data: dict[str, Any] = {**config_entry.data, **config_entry.options}
 

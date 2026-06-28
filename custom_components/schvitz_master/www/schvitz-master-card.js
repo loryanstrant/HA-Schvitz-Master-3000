@@ -10,14 +10,23 @@
 
 const CARD_TAG = "schvitz-master-card";
 const EDITOR_TAG = "schvitz-master-card-editor";
-const CARD_VERSION = "0.2.0";
+const CARD_VERSION = "0.3.0";
 
 const STATE_LABEL = {
   idle: "Idle",
-  warmup: "Heating",
+  heating: "Heating",
   in_round: "In round",
   break: "Break",
   ending: "Finishing",
+};
+
+// data-act on a button -> the schvitz_master service it calls.
+const ACT_SERVICE = {
+  start: "start_session",
+  start_round: "start_round",
+  stop: "end_session",
+  next_round: "next_round",
+  extend: "extend_round",
 };
 
 function fmtMMSS(seconds) {
@@ -93,7 +102,7 @@ class SchvitzMasterCard extends HTMLElement {
     const phaseEnds = (this._e("sensor", "session_state") || { attributes: {} }).attributes
       .phase_ends_at;
     let pct = active ? 100 : 0;
-    if (remaining != null && active && state !== "warmup") {
+    if (remaining != null && active && state !== "heating") {
       // We don't know the phase length here; show remaining as a shrinking ring
       // scaled against the configured round/break number entities.
       const knob = state === "break" ? "break_duration" : "round_duration";
@@ -107,8 +116,8 @@ class SchvitzMasterCard extends HTMLElement {
     const sub =
       state === "idle"
         ? "Ready"
-        : state === "warmup"
-        ? "Warming up…"
+        : state === "heating"
+        ? "Heating — tap Start when you're in"
         : `Round ${round} of ${total}`;
 
     this.innerHTML = `
@@ -142,17 +151,19 @@ class SchvitzMasterCard extends HTMLElement {
           </div>
           <div class="sm-ring-wrap">${ring}</div>
           <div class="sm-center">
-            <div class="sm-time">${state === "warmup" ? "♨" : fmtMMSS(remaining)}</div>
+            <div class="sm-time">${state === "heating" ? "♨" : fmtMMSS(remaining)}</div>
             <div class="sm-sub">${sub}</div>
           </div>
           <div class="sm-btns">
             ${
-              active
-                ? `<button data-act="stop">Stop</button>
-                   ${state === "warmup" ? `<button data-act="skip_warmup">Skip warm-up</button>` : ""}
-                   <button data-act="next_round">Next</button>
-                   <button data-act="extend">+5 min</button>`
-                : `<button class="primary" data-act="start">Start schvitz</button>`
+              !active
+                ? `<button class="primary" data-act="start">Start schvitz</button>`
+                : state === "heating"
+                ? `<button class="primary" data-act="start_round">I'm in — start round</button>
+                   <button data-act="stop">Stop</button>`
+                : `<button data-act="next_round">Next</button>
+                   <button data-act="extend">+5 min</button>
+                   <button data-act="stop">Stop</button>`
             }
           </div>
           <div class="sm-stats">
@@ -167,8 +178,8 @@ class SchvitzMasterCard extends HTMLElement {
     this.querySelectorAll("button[data-act]").forEach((b) => {
       b.addEventListener("click", () => {
         const act = b.getAttribute("data-act");
-        if (act === "extend") this._call("extend_round", { minutes: 5 });
-        else this._call(act);
+        const service = ACT_SERVICE[act] || act;
+        this._call(service, act === "extend" ? { minutes: 5 } : {});
       });
     });
   }
@@ -178,7 +189,7 @@ class SchvitzMasterCard extends HTMLElement {
     const c = 2 * Math.PI * r;
     const off = c * (1 - Math.max(0, Math.min(100, pct)) / 100);
     const color =
-      state === "warmup"
+      state === "heating"
         ? "var(--warning-color, #e8823c)"
         : state === "break"
         ? "var(--info-color, #5fa8d6)"

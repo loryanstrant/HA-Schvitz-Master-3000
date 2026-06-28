@@ -21,8 +21,7 @@ async def async_setup_entry(
     async_add_entities(
         [
             SessionActiveBinarySensor(coord),
-            _StateBinarySensor(coord, "heating", "Heating", {C.STATE_WARMUP},
-                               BinarySensorDeviceClass.HEAT),
+            HeatingBinarySensor(coord),
             _StateBinarySensor(coord, "in_round", "In round", {C.STATE_IN_ROUND},
                                BinarySensorDeviceClass.RUNNING),
             _StateBinarySensor(coord, "break_active", "Break", {C.STATE_BREAK}, None),
@@ -55,6 +54,20 @@ class SessionActiveBinarySensor(_Base):
             "round": c.current_round,
             "total_rounds": c.round_count,
         }
+
+
+class HeatingBinarySensor(_Base):
+    """Real 'element is heating', derived from the plug power / operation sensor."""
+
+    _attr_device_class = BinarySensorDeviceClass.HEAT
+    _attr_icon = "mdi:radiator"
+
+    def __init__(self, coord: SchvitzCoordinator) -> None:
+        super().__init__(coord, "heating", "Heating")
+
+    @property
+    def is_on(self) -> bool:
+        return self._coordinator.is_heating
 
 
 class _StateBinarySensor(_Base):

@@ -17,7 +17,7 @@ from homeassistant.setup import async_when_setup
 _LOGGER = logging.getLogger(__name__)
 
 # Keep in lockstep with manifest.json on every release.
-CARD_VERSION = "0.2.0"
+CARD_VERSION = "0.3.0"
 STATIC_URL_BASE = "/schvitz_master_static"
 CARD_FILE = "schvitz-master-card.js"
 CARD_URL = f"{STATIC_URL_BASE}/{CARD_FILE}"

@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0
+A redesign of how a session runs, from real-world feedback.
+
+### Added
+- **Heater switch is the trigger**: enabling your sauna (e.g. `schvitz_mode`) now begins a
+  session automatically; the Start button just flips it.
+- **Manual round start**: after the sauna heats up you get a **"sauna's ready"** phone
+  notification, then tap **Start round** when you get in (no more auto-start).
+- **Open-ended breaks**: after a round the sauna waits until you tap **Next** (back from
+  your cold shower). Break length is now optional — set it only for a timed break.
+- **Heating from power**: real heating status comes from your plug's power / operation
+  sensor, not a switch.
+- **Start scene**: activate a scene you compose at session start (set lights to exact
+  colours), instead of just flipping switches.
+- **Safety cut-offs**: auto-end + switch off if left heating too long, or if the door is
+  left open during a session.
+- **Music Assistant playlist picker**: choose a playlist from a dropdown of your MA
+  playlists — no more hunting for IDs.
+- Setup screens now show **Next** buttons and a step counter (1 of 5 …).
+
+### Changed
+- Door sensor and heater switch are optional (from 0.2.0); break length is now optional too.
+- "Skip warm-up" → **Start round**; the warm-up-wait switch was removed.
+
 ## 0.2.0
 
 ### Added

@@ -104,9 +104,9 @@ set_rounds:
       selector:
         number: { min: 1, max: 6, step: 1, mode: box }
 
-skip_warmup:
-  name: Skip warm-up
-  description: Stop waiting for warm-up and begin round 1.
+start_round:
+  name: Start round
+  description: Begin round 1 from the heating phase (you're getting in), or the next round from a break.
   fields:
     target:
       name: Sauna

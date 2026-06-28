@@ -24,11 +24,11 @@ async def async_setup_entry(
                   lambda c: c.round_count, lambda c, v: c.async_set_round_count(v)),
             _Knob(coord, "round_duration", "Round duration", 3, 30, 1, "min", "mdi:timer",
                   lambda c: c.round_duration_min, lambda c, v: c.async_set_round_duration(v)),
-            _Knob(coord, "break_duration", "Break duration", 2, 30, 1, "min", "mdi:timer-pause",
+            _Knob(coord, "break_duration", "Break duration", 0, 30, 1, "min", "mdi:timer-pause",
                   lambda c: c.break_duration_min, lambda c, v: c.async_set_break_duration(v)),
-            _Knob(coord, "warmup_target_temp", "Warm-up target temp", 40, 110, 1,
+            _Knob(coord, "ready_temp", "Ready temperature", 40, 110, 1,
                   UnitOfTemperature.CELSIUS, "mdi:thermometer-chevron-up",
-                  lambda c: c.warmup_target_temp, lambda c, v: c.async_set_warmup_target(v)),
+                  lambda c: c.ready_target_temp, lambda c, v: c.async_set_ready_temp(v)),
         ]
     )
 

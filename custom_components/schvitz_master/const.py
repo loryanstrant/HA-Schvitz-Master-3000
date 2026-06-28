@@ -7,7 +7,7 @@ switches, media (Music Assistant), and per-session sensor tracking.
 from __future__ import annotations
 
 DOMAIN = "schvitz_master"
-PLATFORMS = ["binary_sensor", "sensor", "number", "select", "button", "switch"]
+PLATFORMS = ["binary_sensor", "sensor", "number", "select", "button"]
 
 # Short prefix for entity IDs (e.g. sensor.schvitz_sauna_session_state).
 # Keeps the integration's entities grouped and easy to filter.
@@ -21,8 +21,15 @@ CONF_DOOR_SENSOR = "door_sensor"
 CONF_VENT_SENSOR = "vent_sensor"
 CONF_HEATER_SWITCH = "heater_switch"
 CONF_PLUG_SWITCH = "plug_switch"
+CONF_POWER_SENSOR = "power_sensor"
+CONF_OPERATION_SENSOR = "operation_sensor"
+CONF_TRIGGER_ON_HEATER = "trigger_on_heater"
+CONF_START_SCENE = "start_scene"
 CONF_PRE_SWITCHES = "pre_switches"
+CONF_END_OFF_SWITCHES = "end_off_switches"
 CONF_POST_SWITCHES = "post_switches"
+CONF_DOOR_OPEN_TIMEOUT = "door_open_timeout"
+CONF_IDLE_HEATING_TIMEOUT = "idle_heating_timeout"
 CONF_MEDIA_PLAYER = "media_player"
 CONF_DEFAULT_PLAYLIST = "default_playlist"
 CONF_DEFAULT_VOLUME = "default_volume"
@@ -44,8 +51,12 @@ DEFAULT_BREAK_MIN = 8
 DEFAULT_WARMUP_TARGET_TEMP = 80.0
 DEFAULT_VOLUME = 0.5
 DEFAULT_MUSIC_START_TEMP = 50.0
-# Max wall-clock to wait for warm-up before proceeding anyway (safety net).
-WARMUP_TIMEOUT_MIN = 45
+DEFAULT_DOOR_OPEN_TIMEOUT = 3      # minutes the door may stay open before warning/ending
+DEFAULT_IDLE_HEATING_TIMEOUT = 60  # minutes heating with no round started before auto-off
+# Plug power (kW) above which the heater element is considered actively heating.
+HEATING_POWER_THRESHOLD_KW = 2.0
+# Sauna operation text-sensor value that means heating.
+OPERATION_HEATING = "Heating"
 
 # --- When the chosen playlist starts playing ----------------------------------
 MUSIC_START_ROUND = "round"   # when round 1 begins (default)
@@ -59,13 +70,13 @@ SOURCE_MODES = [SOURCE_MODE_DELTA, SOURCE_MODE_ABSOLUTE]
 
 # --- Session states -----------------------------------------------------------
 STATE_IDLE = "idle"
-STATE_WARMUP = "warmup"
+STATE_HEATING = "heating"   # sauna on, coming up to temp — waiting for you to get in
 STATE_IN_ROUND = "in_round"
-STATE_BREAK = "break"
+STATE_BREAK = "break"       # open-ended by default; waits for Next (your cold shower)
 STATE_ENDING = "ending"
-SESSION_STATES = [STATE_IDLE, STATE_WARMUP, STATE_IN_ROUND, STATE_BREAK, STATE_ENDING]
+SESSION_STATES = [STATE_IDLE, STATE_HEATING, STATE_IN_ROUND, STATE_BREAK, STATE_ENDING]
 # States in which a session is considered active (running).
-ACTIVE_STATES = {STATE_WARMUP, STATE_IN_ROUND, STATE_BREAK, STATE_ENDING}
+ACTIVE_STATES = {STATE_HEATING, STATE_IN_ROUND, STATE_BREAK, STATE_ENDING}
 
 # --- Services -----------------------------------------------------------------
 SERVICE_START_SESSION = "start_session"
@@ -73,7 +84,7 @@ SERVICE_END_SESSION = "end_session"
 SERVICE_NEXT_ROUND = "next_round"
 SERVICE_EXTEND_ROUND = "extend_round"
 SERVICE_SET_ROUNDS = "set_rounds"
-SERVICE_SKIP_WARMUP = "skip_warmup"
+SERVICE_START_ROUND = "start_round"
 SERVICE_LOG_WATER = "log_water"
 SERVICE_APPLY_PROFILE = "apply_profile"
 

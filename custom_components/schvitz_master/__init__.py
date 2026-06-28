@@ -103,9 +103,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         if coord := _coord(call):
             await coord.async_set_rounds(call.data[C.ATTR_ROUNDS])
 
-    async def handle_skip_warmup(call: ServiceCall) -> None:
+    async def handle_start_round(call: ServiceCall) -> None:
         if coord := _coord(call):
-            await coord.async_skip_warmup()
+            await coord.async_start_round()
 
     async def handle_log_water(call: ServiceCall) -> None:
         if coord := _coord(call):
@@ -121,7 +121,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         (C.SERVICE_NEXT_ROUND, handle_next, SIMPLE_SCHEMA),
         (C.SERVICE_EXTEND_ROUND, handle_extend, EXTEND_SCHEMA),
         (C.SERVICE_SET_ROUNDS, handle_set_rounds, SET_ROUNDS_SCHEMA),
-        (C.SERVICE_SKIP_WARMUP, handle_skip_warmup, SIMPLE_SCHEMA),
+        (C.SERVICE_START_ROUND, handle_start_round, SIMPLE_SCHEMA),
         (C.SERVICE_LOG_WATER, handle_log_water, LOG_WATER_SCHEMA),
         (C.SERVICE_APPLY_PROFILE, handle_apply_profile, APPLY_PROFILE_SCHEMA),
     )
