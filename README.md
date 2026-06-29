@@ -1,5 +1,12 @@
 # Schvitz Master 3000
 
+[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5?style=flat-square)](https://github.com/hacs/integration)
+[![License](https://img.shields.io/github/license/loryanstrant/HA-Schvitz-Master-3000?style=flat-square)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/loryanstrant/HA-Schvitz-Master-3000?style=flat-square)](https://github.com/loryanstrant/HA-Schvitz-Master-3000/commits)
+[![Stars](https://img.shields.io/github/stars/loryanstrant/HA-Schvitz-Master-3000?style=flat-square)](https://github.com/loryanstrant/HA-Schvitz-Master-3000/stargazers)
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=loryanstrant&repository=HA-Schvitz-Master-3000&category=integration)
+
 A Home Assistant integration that runs your sauna **session** end-to-end — so you
 start it once and it takes care of the rest.
 
